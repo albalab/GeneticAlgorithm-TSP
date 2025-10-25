@@ -1,38 +1,526 @@
-<html>
-    <head>
-	<link rel="stylesheet" href="./css/style.css" />
-	<link rel="stylesheet" href="./css/bootstrap.min.css" />
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Traveling Salesman Problem Using Genetic Algorithms</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            font-family: "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        #title {
+            margin: 24px 0 16px;
+            font-size: 32px;
+            letter-spacing: -1px;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 10px 0 20px;
+        }
+        .btn {
+            padding: 10px 18px;
+            font-size: 14px;
+            background: #0d6efd;
+            border: none;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .btn:hover {
+            background: #0a58ca;
+        }
+        .btn:active {
+            background: #0947a9;
+        }
+        #status {
+            margin: 10px auto 20px;
+            padding: 14px;
+            min-height: 24px;
+            background: #fff;
+            border-radius: 4px;
+            text-align: center;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        }
+        #canvas {
+            display: block;
+            margin: 0 auto;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background: #fff;
+        }
+        footer {
+            margin: 30px 0 10px;
+            text-align: center;
+            font-size: 13px;
+            color: #666;
+        }
+        footer a {
+            color: inherit;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 id="title">Traveling Salesman Problem Using Genetic Algorithms</h1>
+        </header>
+        <div class="controls">
+            <button id="addRandom_btn" class="btn">Add 50 Random Points</button>
+            <button id="start_btn" class="btn">Start/Restart</button>
+            <button id="stop_btn" class="btn">Stop/Continue</button>
+            <button id="clear_btn" class="btn">Clear All</button>
+        </div>
+        <div id="status"></div>
+        <canvas id="canvas" width="880" height="660">Your browser does not support canvas.</canvas>
+    </div>
+    <footer>
+        Source code available <a href="http://github.com/parano/GeneticAlgorithm-Solving-TSP">here</a>
+    </footer>
+    <script>
+    (function () {
+        "use strict";
 
-	<script type="text/javascript" src="./lib/jquery-1.7.2.min.js"></script>
-	<script type="text/javascript" src="./src/main.js"></script>
-	<script type="text/javascript" src="./src/algorithm.js"></script>
-	<script type="text/javascript" src="./src/utils.js"></script>
-	<script type="text/javascript" src="./src/data.js"></script>
-    </head>
-    <body>
-	<div class="container">
-	    <header>
-		<h1 id="title">Traveling Salesman Problem Using Genetic Algorithms</h1>
-	    </header>
-	    <div class="row-fluid">
-		<div id="control_bottons" class="btn-group row">
-		    <button id="addRandom_btn" class="btn">Add 50 Random Points</button>
-		    <button id="start_btn" class="btn">Start/Restart</button>
-		    <button id="stop_btn" class="btn">Stop/Continue</button>
-		    <button id="clear_btn" class="btn">Clear All</button>
-		</div>
-		<div class="row">
-		    <span id="status" class="show-grid"></span>
-		</div>
-		<canvas id="canvas" 
-		    width="880" height="660"
-		    style="border:1px solid;">
-		    your browser sucks
-		</canvas>
-	    </div>
-	</div>
-	<footer>
-    Source code available <a href="http://github.com/parano/GeneticAlgorithm-Solving-TSP">here</a>
-	</footer>
-    </body>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        const WIDTH = canvas.width;
+        const HEIGHT = canvas.height;
+        const statusEl = document.getElementById("status");
+
+        const data40 = [{"x":116,"y":404},{"x":161,"y":617},{"x":16,"y":97},{"x":430,"y":536},{"x":601,"y":504},{"x":425,"y":461},{"x":114,"y":544},{"x":127,"y":118},{"x":163,"y":357},{"x":704,"y":104},{"x":864,"y":125},{"x":847,"y":523},{"x":742,"y":170},{"x":204,"y":601},{"x":421,"y":377},{"x":808,"y":49},{"x":860,"y":466},{"x":844,"y":294},{"x":147,"y":213},{"x":550,"y":124},{"x":238,"y":313},{"x":57,"y":572},{"x":664,"y":190},{"x":612,"y":644},{"x":456,"y":154},{"x":120,"y":477},{"x":542,"y":313},{"x":620,"y":29},{"x":245,"y":246},{"x":611,"y":578},{"x":627,"y":373},{"x":534,"y":286},{"x":577,"y":545},{"x":539,"y":340},{"x":794,"y":328},{"x":855,"y":139},{"x":700,"y":47},{"x":275,"y":593},{"x":130,"y":196},{"x":863,"y":35}];
+        const data200 = [{"x":150,"y":172},{"x":822,"y":244},{"x":619,"y":220},{"x":243,"y":433},{"x":9,"y":48},{"x":541,"y":402},{"x":540,"y":212},{"x":479,"y":646},{"x":545,"y":90},{"x":811,"y":355},{"x":314,"y":325},{"x":337,"y":487},{"x":675,"y":76},{"x":629,"y":375},{"x":809,"y":105},{"x":269,"y":135},{"x":423,"y":592},{"x":558,"y":288},{"x":622,"y":70},{"x":740,"y":495},{"x":508,"y":79},{"x":40,"y":236},{"x":818,"y":252},{"x":811,"y":480},{"x":458,"y":220},{"x":293,"y":220},{"x":582,"y":275},{"x":188,"y":542},{"x":300,"y":235},{"x":690,"y":649},{"x":166,"y":565},{"x":400,"y":80},{"x":121,"y":498},{"x":603,"y":587},{"x":729,"y":89},{"x":723,"y":23},{"x":171,"y":609},{"x":523,"y":449},{"x":668,"y":102},{"x":328,"y":531},{"x":468,"y":588},{"x":600,"y":239},{"x":312,"y":636},{"x":344,"y":112},{"x":267,"y":184},{"x":292,"y":615},{"x":21,"y":401},{"x":650,"y":266},{"x":535,"y":393},{"x":796,"y":598},{"x":29,"y":412},{"x":528,"y":363},{"x":344,"y":152},{"x":314,"y":35},{"x":138,"y":191},{"x":643,"y":341},{"x":350,"y":423},{"x":319,"y":542},{"x":797,"y":659},{"x":66,"y":296},{"x":761,"y":574},{"x":26,"y":270},{"x":129,"y":509},{"x":24,"y":312},{"x":89,"y":635},{"x":454,"y":34},{"x":717,"y":189},{"x":476,"y":457},{"x":471,"y":212},{"x":74,"y":457},{"x":406,"y":221},{"x":701,"y":313},{"x":719,"y":642},{"x":573,"y":424},{"x":250,"y":231},{"x":748,"y":334},{"x":318,"y":453},{"x":815,"y":92},{"x":198,"y":47},{"x":79,"y":451},{"x":502,"y":582},{"x":471,"y":355},{"x":509,"y":257},{"x":727,"y":290},{"x":476,"y":281},{"x":609,"y":576},{"x":772,"y":72},{"x":263,"y":156},{"x":411,"y":203},{"x":100,"y":254},{"x":29,"y":208},{"x":625,"y":349},{"x":789,"y":163},{"x":300,"y":224},{"x":637,"y":57},{"x":789,"y":153},{"x":429,"y":427},{"x":571,"y":355},{"x":426,"y":348},{"x":620,"y":545},{"x":601,"y":322},{"x":600,"y":441},{"x":519,"y":357},{"x":59,"y":262},{"x":878,"y":621},{"x":712,"y":592},{"x":202,"y":341},{"x":300,"y":41},{"x":87,"y":647},{"x":735,"y":60},{"x":289,"y":110},{"x":126,"y":133},{"x":375,"y":584},{"x":421,"y":469},{"x":775,"y":341},{"x":656,"y":534},{"x":225,"y":634},{"x":520,"y":339},{"x":865,"y":515},{"x":457,"y":378},{"x":293,"y":141},{"x":202,"y":293},{"x":347,"y":423},{"x":186,"y":284},{"x":572,"y":600},{"x":319,"y":412},{"x":685,"y":73},{"x":845,"y":248},{"x":834,"y":339},{"x":391,"y":571},{"x":139,"y":346},{"x":635,"y":352},{"x":401,"y":117},{"x":381,"y":281},{"x":471,"y":552},{"x":793,"y":585},{"x":279,"y":520},{"x":783,"y":520},{"x":374,"y":38},{"x":458,"y":479},{"x":869,"y":15},{"x":626,"y":216},{"x":148,"y":604},{"x":560,"y":109},{"x":342,"y":141},{"x":426,"y":536},{"x":697,"y":414},{"x":283,"y":18},{"x":172,"y":181},{"x":206,"y":227},{"x":763,"y":291},{"x":439,"y":124},{"x":523,"y":388},{"x":338,"y":211},{"x":30,"y":593},{"x":187,"y":498},{"x":126,"y":86},{"x":4,"y":58},{"x":566,"y":329},{"x":524,"y":486},{"x":788,"y":334},{"x":346,"y":194},{"x":506,"y":231},{"x":135,"y":190},{"x":288,"y":406},{"x":200,"y":515},{"x":739,"y":91},{"x":300,"y":439},{"x":725,"y":420},{"x":83,"y":612},{"x":665,"y":336},{"x":848,"y":246},{"x":865,"y":521},{"x":3,"y":406},{"x":187,"y":431},{"x":462,"y":564},{"x":530,"y":648},{"x":708,"y":173},{"x":325,"y":96},{"x":4,"y":480},{"x":530,"y":512},{"x":780,"y":126},{"x":614,"y":610},{"x":359,"y":431},{"x":343,"y":640},{"x":453,"y":182},{"x":648,"y":477},{"x":447,"y":258},{"x":23,"y":465},{"x":455,"y":215},{"x":534,"y":396},{"x":869,"y":337},{"x":511,"y":290},{"x":683,"y":291},{"x":328,"y":370},{"x":160,"y":497},{"x":144,"y":203},{"x":717,"y":222},{"x":31,"y":376},{"x":452,"y":600}];
+
+        let points = [];
+        let running = false;
+        let doPreciseMutate = true;
+        let POPULATION_SIZE = 30;
+        let ELITE_RATE = 0.3;
+        let CROSSOVER_PROBABILITY = 0.9;
+        let MUTATION_PROBABILITY = 0.01;
+        let UNCHANGED_GENS = 0;
+
+        let mutationTimes = 0;
+        let dis = [];
+        let bestValue;
+        let best = [];
+        let currentGeneration = 0;
+        let currentBest = null;
+        let population = [];
+        let values = [];
+        let fitnessValues = [];
+        let roulette = [];
+
+        Array.prototype.clone = function () {
+            return this.slice(0);
+        };
+        Array.prototype.shuffle = function () {
+            for (let i = this.length - 1; i > 0; i--) {
+                const j = randomNumber(i + 1);
+                const temp = this[i];
+                this[i] = this[j];
+                this[j] = temp;
+            }
+            return this;
+        };
+        Array.prototype.deleteByValue = function (value) {
+            const pos = this.indexOf(value);
+            if (pos >= 0) {
+                this.splice(pos, 1);
+            }
+        };
+        Array.prototype.next = function (index) {
+            return index === this.length - 1 ? this[0] : this[index + 1];
+        };
+        Array.prototype.previous = function (index) {
+            return index === 0 ? this[this.length - 1] : this[index - 1];
+        };
+        Array.prototype.swap = function (x, y) {
+            if (x >= this.length || y >= this.length || x === y) {
+                return;
+            }
+            const temp = this[x];
+            this[x] = this[y];
+            this[y] = temp;
+        };
+        Array.prototype.roll = function () {
+            const rand = randomNumber(this.length);
+            const result = [];
+            for (let i = rand; i < this.length; i++) {
+                result.push(this[i]);
+            }
+            for (let i = 0; i < rand; i++) {
+                result.push(this[i]);
+            }
+            return result;
+        };
+        Array.prototype.reject = function (array) {
+            return this.filter(function (element) {
+                return array.indexOf(element) < 0;
+            });
+        };
+
+        function Point(x, y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        function randomPoint() {
+            return new Point(randomNumber(WIDTH), randomNumber(HEIGHT));
+        }
+
+        function randomNumber(boundary) {
+            return Math.floor(Math.random() * boundary);
+        }
+
+        function distance(p1, p2) {
+            return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+        }
+
+        function init() {
+            initData();
+            points = data200.map(function (p) {
+                return new Point(p.x, p.y);
+            });
+            setInterval(draw, 10);
+            initMouse();
+            bindControls();
+        }
+
+        function initMouse() {
+            canvas.addEventListener("click", function (evt) {
+                if (!running) {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = evt.clientX - rect.left;
+                    const y = evt.clientY - rect.top;
+                    points.push(new Point(x, y));
+                    statusEl.textContent = "";
+                }
+            });
+        }
+
+        function bindControls() {
+            document.getElementById("addRandom_btn").addEventListener("click", function () {
+                addRandomPoints(50);
+                statusEl.textContent = "";
+                running = false;
+            });
+
+            document.getElementById("start_btn").addEventListener("click", function () {
+                if (points.length >= 3) {
+                    initData();
+                    GAInitialize();
+                    running = true;
+                } else {
+                    window.alert("Add some more points to the map!");
+                }
+            });
+
+            document.getElementById("stop_btn").addEventListener("click", function () {
+                if (!running && currentGeneration !== 0) {
+                    if (best.length !== points.length) {
+                        initData();
+                        GAInitialize();
+                    }
+                    running = true;
+                } else {
+                    running = false;
+                }
+            });
+
+            document.getElementById("clear_btn").addEventListener("click", function () {
+                running = false;
+                initData();
+                points = [];
+            });
+        }
+
+        function initData() {
+            running = false;
+            POPULATION_SIZE = 30;
+            ELITE_RATE = 0.3;
+            CROSSOVER_PROBABILITY = 0.9;
+            MUTATION_PROBABILITY = 0.01;
+            UNCHANGED_GENS = 0;
+            mutationTimes = 0;
+            doPreciseMutate = true;
+
+            bestValue = undefined;
+            best = [];
+            currentGeneration = 0;
+            currentBest = null;
+            population = [];
+            values = new Array(POPULATION_SIZE);
+            fitnessValues = new Array(POPULATION_SIZE);
+            roulette = new Array(POPULATION_SIZE);
+        }
+
+        function addRandomPoints(number) {
+            running = false;
+            for (let i = 0; i < number; i++) {
+                points.push(randomPoint());
+            }
+        }
+
+        function drawCircle(point) {
+            ctx.fillStyle = "#000";
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, 3, 0, Math.PI * 2, true);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawLines(array) {
+            ctx.strokeStyle = "#f00";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(points[array[0]].x, points[array[0]].y);
+            for (let i = 1; i < array.length; i++) {
+                ctx.lineTo(points[array[i]].x, points[array[i]].y);
+            }
+            ctx.lineTo(points[array[0]].x, points[array[0]].y);
+            ctx.stroke();
+            ctx.closePath();
+        }
+
+        function draw() {
+            if (running) {
+                GANextGeneration();
+                statusEl.textContent = "There are " + points.length + " cities in the map, the " +
+                    currentGeneration + "th generation with " + mutationTimes + " times of mutation. Best value: " + Math.floor(bestValue);
+            } else {
+                statusEl.textContent = "There are " + points.length + " cities in the map.";
+            }
+            clearCanvas();
+            if (points.length > 0) {
+                for (let i = 0; i < points.length; i++) {
+                    drawCircle(points[i]);
+                }
+                if (best.length === points.length) {
+                    drawLines(best);
+                }
+            }
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, WIDTH, HEIGHT);
+        }
+
+        function GAInitialize() {
+            countDistances();
+            population = [];
+            for (let i = 0; i < POPULATION_SIZE; i++) {
+                population.push(randomIndivial(points.length));
+            }
+            setBestValue();
+        }
+
+        function GANextGeneration() {
+            currentGeneration++;
+            selection();
+            crossover();
+            mutation();
+            setBestValue();
+        }
+
+        function selection() {
+            const parents = [];
+            const initnum = 4;
+            const eliteIndex = currentBest ? currentBest.bestPosition : 0;
+            if (population[eliteIndex]) {
+                parents.push(population[eliteIndex]);
+            } else {
+                parents.push(randomIndivial(points.length));
+            }
+            parents.push(doMutate(best.clone()));
+            parents.push(pushMutate(best.clone()));
+            parents.push(best.clone());
+
+            setRoulette();
+            for (let i = initnum; i < POPULATION_SIZE; i++) {
+                parents.push(population[wheelOut(Math.random())]);
+            }
+            population = parents;
+        }
+
+        function crossover() {
+            const queue = [];
+            for (let i = 0; i < POPULATION_SIZE; i++) {
+                if (Math.random() < CROSSOVER_PROBABILITY) {
+                    queue.push(i);
+                }
+            }
+            queue.shuffle();
+            for (let i = 0; i < queue.length - 1; i += 2) {
+                doCrossover(queue[i], queue[i + 1]);
+            }
+        }
+
+        function doCrossover(x, y) {
+            const child1 = getChild("next", x, y);
+            const child2 = getChild("previous", x, y);
+            population[x] = child1;
+            population[y] = child2;
+        }
+
+        function getChild(direction, x, y) {
+            const solution = [];
+            const px = population[x].clone();
+            const py = population[y].clone();
+            let c = px[randomNumber(px.length)];
+            solution.push(c);
+            while (px.length > 1) {
+                const dx = px[direction](px.indexOf(c));
+                const dy = py[direction](py.indexOf(c));
+                px.deleteByValue(c);
+                py.deleteByValue(c);
+                c = dis[c][dx] < dis[c][dy] ? dx : dy;
+                solution.push(c);
+            }
+            return solution;
+        }
+
+        function mutation() {
+            for (let i = 0; i < POPULATION_SIZE; i++) {
+                if (Math.random() < MUTATION_PROBABILITY) {
+                    if (Math.random() > 0.5) {
+                        population[i] = pushMutate(population[i]);
+                    } else {
+                        population[i] = doMutate(population[i]);
+                    }
+                    i--;
+                }
+            }
+        }
+
+        function doMutate(seq) {
+            mutationTimes++;
+            let m;
+            let n;
+            do {
+                m = randomNumber(seq.length - 1);
+                n = randomNumber(seq.length);
+            } while (m >= n);
+            for (let i = 0, j = (n - m + 1) >> 1; i < j; i++) {
+                seq.swap(m + i, n - i);
+            }
+            return seq;
+        }
+
+        function pushMutate(seq) {
+            mutationTimes++;
+            let m;
+            let n;
+            do {
+                m = randomNumber(seq.length >> 1);
+                n = randomNumber(seq.length);
+            } while (m >= n);
+            const s1 = seq.slice(0, m);
+            const s2 = seq.slice(m, n);
+            const s3 = seq.slice(n);
+            return s2.concat(s1).concat(s3).clone();
+        }
+
+        function setBestValue() {
+            for (let i = 0; i < population.length; i++) {
+                values[i] = evaluate(population[i]);
+            }
+            currentBest = getCurrentBest();
+            if (bestValue === undefined || bestValue > currentBest.bestValue) {
+                best = population[currentBest.bestPosition].clone();
+                bestValue = currentBest.bestValue;
+                UNCHANGED_GENS = 0;
+            } else {
+                UNCHANGED_GENS += 1;
+            }
+        }
+
+        function getCurrentBest() {
+            let bestP = 0;
+            let currentBestValue = values[0];
+            for (let i = 1; i < population.length; i++) {
+                if (values[i] < currentBestValue) {
+                    currentBestValue = values[i];
+                    bestP = i;
+                }
+            }
+            return {
+                bestPosition: bestP,
+                bestValue: currentBestValue
+            };
+        }
+
+        function setRoulette() {
+            let sum = 0;
+            for (let i = 0; i < values.length; i++) {
+                fitnessValues[i] = 1.0 / values[i];
+                sum += fitnessValues[i];
+            }
+            for (let i = 0; i < roulette.length; i++) {
+                roulette[i] = fitnessValues[i] / sum;
+            }
+            for (let i = 1; i < roulette.length; i++) {
+                roulette[i] += roulette[i - 1];
+            }
+        }
+
+        function wheelOut(rand) {
+            for (let i = 0; i < roulette.length; i++) {
+                if (rand <= roulette[i]) {
+                    return i;
+                }
+            }
+            return roulette.length - 1;
+        }
+
+        function randomIndivial(n) {
+            const a = [];
+            for (let i = 0; i < n; i++) {
+                a.push(i);
+            }
+            return a.shuffle();
+        }
+
+        function evaluate(individual) {
+            if (individual.length === 0) {
+                return Infinity;
+            }
+            let sum = dis[individual[0]][individual[individual.length - 1]];
+            for (let i = 1; i < individual.length; i++) {
+                sum += dis[individual[i]][individual[i - 1]];
+            }
+            return sum;
+        }
+
+        function countDistances() {
+            const length = points.length;
+            dis = new Array(length);
+            for (let i = 0; i < length; i++) {
+                dis[i] = new Array(length);
+                for (let j = 0; j < length; j++) {
+                    dis[i][j] = Math.floor(distance(points[i], points[j]));
+                }
+            }
+        }
+
+        init();
+    })();
+    </script>
+</body>
 </html>
